@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
+    <title>Carrito de Compras</title>
+    <style>
+        body {
+            background-color: #171716;
+            color: white;
+        }
+        .card {
+            background-color: #2a2a2a;
+            color: white;
+        }
+        .table {
+            color: white;
+        }
+        .btn-eliminar {
+            color: white;
+            background-color: #dc3545;
+        }
+        .btn-eliminar:hover {
+            background-color: #bb2d3b;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-5">
+        <h2 class="mb-4">Carrito de Compras</h2>
+        
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags }}">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        {% endif %}
+
+        {% if items %}
+            <div class="card">
+                <div class="card-body">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Producto</th>
+                                <th>Precio</th>
+                                <th>Cantidad</th>
+                                <th>Subtotal</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in items %}
+                                <tr>
+                                    <td>
+                                        <img src="{{ item.suplemento.imagenes.url }}" alt="{{ item.suplemento.nombre }}" style="width: 50px; height: 50px; object-fit: cover;">
+                                        {{ item.suplemento.nombre }}
+                                    </td>
+                                    <td>
+                                        {% if item.suplemento.oferta %}
+                                            <span class="text-decoration-line-through">${{ item.suplemento.precio }}</span>
+                                            <span class="text-danger">${{ item.suplemento.precio_descuento|floatformat:0 }}</span>
+                                        {% else %}
+                                            ${{ item.suplemento.precio }}
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <form method="post" action="{% url 'actualizar_cantidad' item.id %}" class="d-flex align-items-center">
+                                            {% csrf_token %}
+                                            <input type="number" name="cantidad" value="{{ item.cantidad }}" min="1" max="{{ item.suplemento.disponibilidad }}" class="form-control form-control-sm" style="width: 70px;">
+                                            <button type="submit" class="btn btn-sm btn-primary ms-2">Actualizar</button>
+                                        </form>
+                                    </td>
+                                    <td>${{ item.subtotal|floatformat:0 }}</td>
+                                    <td>
+                                        <a href="{% url 'eliminar_del_carrito' item.id %}" class="btn btn-eliminar btn-sm">
+                                            <i class="bi bi-trash"></i> Eliminar
+                                        </a>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                        <tfoot>
+                            <tr>
+                                <td colspan="3" class="text-end"><strong>Total:</strong></td>
+                                <td colspan="2"><strong>${{ carrito.total|floatformat:0 }}</strong></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+            
+            <div class="mt-4">
+                <a href="{% url 'suplementos' %}" class="btn btn-secondary">Seguir Comprando</a>
+                {% if request.user.is_authenticated %}
+                    <a href="{% url 'realizar_compra' %}" class="btn btn-success float-end">Realizar Compra</a>
+                {% else %}
+                    <a href="{% url 'login' %}?next={% url 'realizar_compra' %}" class="btn btn-warning float-end">
+                        Iniciar Sesión para Comprar
+                    </a>
+                {% endif %}
+            </div>
+        {% else %}
+            <div class="alert alert-info">
+                Tu carrito está vacío. <a href="{% url 'suplementos' %}" class="alert-link">¡Comienza a comprar!</a>
+            </div>
+        {% endif %}
+    </div>
+</body>
+</html> 

@@ -91,9 +91,12 @@
                         
                         <!-- mostrar el botón de comprar o "Agotado" -->
                         {% if suplemento.disponibilidad > 0 %}
-                        <a href="#" class="btn btn-primary btn-comprar">Agregar al carro</a>
+                            <form method="post" action="{% url 'agregar_al_carrito' suplemento.id %}">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-primary btn-lg">Agregar al Carrito</button>
+                            </form>
                         {% else %}
-                        <button class="btn btn-secondary btn-comprar" disabled>Producto Agotado</button>
+                            <button class="btn btn-secondary btn-lg" disabled>Producto Agotado</button>
                         {% endif %}
                     </div>
                 </div> 
