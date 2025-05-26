@@ -1,70 +1,68 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-    <title>Login</title>
-    <style>
-        body {
-            background-color: #171716;
-            color: white;
-        }
-        .card {
-            background-color: #2a2a2a;
-            color: white;
-        }
-        .form-control {
-            background-color: #3a3a3a;
-            border-color: #4a4a4a;
-            color: white;
-        }
-        .form-control:focus {
-            background-color: #3a3a3a;
-            border-color: #0d6efd;
-            color: white;
-        }
-    </style>
-</head>
-<body>
-    <div class="container mt-5">
-        <div class="row justify-content-center">
-            <div class="col-md-6">
-                <div class="card">
-                    <div class="card-body">
-                        <h2 class="text-center mb-4">Iniciar Sesión</h2>
-                        
-                        {% if messages %}
-                            {% for message in messages %}
-                                <div class="alert alert-{{ message.tags }}">
-                                    {{ message }}
-                                </div>
-                            {% endfor %}
-                        {% endif %}
+{% extends 'index.html' %}
 
-                        <form method="post">
-                            {% csrf_token %}
-                            <div class="mb-3">
-                                <label for="username" class="form-label">Usuario</label>
-                                <input type="text" class="form-control" id="username" name="username" required>
-                            </div>
-                            <div class="mb-3">
-                                <label for="password" class="form-label">Contraseña</label>
-                                <input type="password" class="form-control" id="password" name="password" required>
-                            </div>
-                            <div class="d-grid gap-2">
-                                <button type="submit" class="btn btn-primary">Iniciar Sesión</button>
-                            </div>
-                        </form>
-                        
-                        <div class="text-center mt-3">
-                            <p>¿No tienes una cuenta? <a href="{% url 'admin:index' %}" class="text-primary">Regístrate aquí</a></p>
+{% block content %}
+<div class="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+    <div class="max-w-md w-full space-y-8">
+        <div>
+            <h2 class="mt-6 text-center text-3xl font-extrabold text-white">
+                Iniciar Sesión
+            </h2>
+            <p class="mt-2 text-center text-sm text-gray-400">
+                O
+                <a href="{% url 'admin:login' %}" class="font-medium text-blue-400 hover:text-blue-300">
+                    acceder como administrador
+                </a>
+            </p>
+        </div>
+
+        {% if messages %}
+            {% for message in messages %}
+                <div class="rounded-md {% if message.tags == 'error' %}bg-red-500{% else %}bg-green-500{% endif %} p-4">
+                    <div class="flex">
+                        <div class="flex-shrink-0">
+                            {% if message.tags == 'error' %}
+                                <i class="bi bi-exclamation-circle text-white"></i>
+                            {% else %}
+                                <i class="bi bi-check-circle text-white"></i>
+                            {% endif %}
+                        </div>
+                        <div class="ml-3">
+                            <p class="text-sm font-medium text-white">
+                                {{ message }}
+                            </p>
                         </div>
                     </div>
                 </div>
+            {% endfor %}
+        {% endif %}
+
+        <form class="mt-8 space-y-6" method="POST">
+            {% csrf_token %}
+            <div class="rounded-md shadow-sm -space-y-px">
+                <div>
+                    <label for="username" class="sr-only">Usuario</label>
+                    <input id="username" name="username" type="text" required 
+                           class="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-700 bg-gray-800 text-white placeholder-gray-400 rounded-t-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm" 
+                           placeholder="Usuario">
+                </div>
+                <div>
+                    <label for="password" class="sr-only">Contraseña</label>
+                    <input id="password" name="password" type="password" required 
+                           class="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-700 bg-gray-800 text-white placeholder-gray-400 rounded-b-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm" 
+                           placeholder="Contraseña">
+                </div>
             </div>
-        </div>
+
+            <div>
+                <button type="submit" 
+                        class="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                    <span class="absolute left-0 inset-y-0 flex items-center pl-3">
+                        <i class="bi bi-box-arrow-in-right"></i>
+                    </span>
+                    Iniciar Sesión
+                </button>
+            </div>
+        </form>
     </div>
-</body>
-</html> 
+</div>
+{% endblock %} 
