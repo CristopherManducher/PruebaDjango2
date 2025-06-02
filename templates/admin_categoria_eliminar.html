@@ -1,0 +1,15 @@
+{% extends 'admin_base.html' %}
+
+{% block content %}
+<div class="max-w-lg mx-auto bg-gray-800 rounded-lg p-8 shadow-lg text-center">
+    <h2 class="text-2xl font-bold text-red-400 mb-6">Eliminar Categoría</h2>
+    <p class="mb-6 text-gray-300">¿Estás seguro de que deseas eliminar la categoría <span class="font-bold text-white">{{ categoria.nombreCategoria }}</span>?</p>
+    <form method="post">
+        {% csrf_token %}
+        <div class="flex justify-center space-x-4">
+            <a href="{% url 'admin_categorias' %}" class="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded">Cancelar</a>
+            <button type="submit" class="bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded font-semibold">Eliminar</button>
+        </div>
+    </form>
+</div>
+{% endblock %} 

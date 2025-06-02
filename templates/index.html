@@ -25,7 +25,7 @@
                                 <i class="bi bi-cart-plus"></i> Carrito
                             </a>
 
-                            <a href="{% url 'admin:login' %}" class="text-gray-300 hover:text-green-400 px-3 py-2 rounded-md text-sm font-medium">
+                            <a href="/login/?next=/admin-panel/" class="text-gray-300 hover:text-green-400 px-3 py-2 rounded-md text-sm font-medium">
                                 <i class="bi bi-person-circle"></i> Login
                             </a>
 
@@ -324,6 +324,7 @@
             }
         });
     </script>
+    {% block extra_js %}{% endblock %}
 </body>
 </html>
 
