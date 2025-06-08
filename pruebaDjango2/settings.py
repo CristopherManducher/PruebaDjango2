@@ -172,8 +172,8 @@ SESSION_COOKIE_AGE = 1209600  # 2 semanas en segundos
 SECURE_BROWSER_XSS_FILTER = True
 SECURE_CONTENT_TYPE_NOSNIFF = True
 X_FRAME_OPTIONS = 'DENY'
-CSRF_COOKIE_SECURE = True
-SESSION_COOKIE_SECURE = True
+CSRF_COOKIE_SECURE = False
+SESSION_COOKIE_SECURE = False
 SECURE_SSL_REDIRECT = False  # Cambiar a True en producción con SSL
 
 # Configuración de seguridad de contraseñas
