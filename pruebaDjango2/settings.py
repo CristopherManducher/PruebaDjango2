@@ -139,10 +139,52 @@ LOGIN_URL = '/login/'
 LOGIN_REDIRECT_URL = '/'
 LOGOUT_REDIRECT_URL = '/'
 
-AXES_FAILURE_LIMIT = 5  # Intentos fallidos antes de bloquear
-AXES_COOLOFF_TIME = 1  # Horas de bloqueo
-AXES_LOCKOUT_TEMPLATE = 'registration/lockout.html'  # (opcional) tu propia plantilla de bloqueo
+# Configuración de django-axes
+AXES_FAILURE_LIMIT = 5
+AXES_COOLOFF_TIME = 1
+AXES_LOCKOUT_TEMPLATE = 'registration/lockout.html'
+AXES_USE_USER_AGENT = True
+AXES_LOCKOUT_BY_IP = True
+AXES_LOCKOUT_BY_USERNAME = True
+AXES_VERBOSE = True
+AXES_RESET_ON_SUCCESS = True
+AXES_USE_USER_AGENT = True
+AXES_LOCKOUT_BY_COMBINATION_USER_AND_IP = True
+
 AUTHENTICATION_BACKENDS = [
-    'axes.backends.AxesStandaloneBackend',
     'django.contrib.auth.backends.ModelBackend',
+    'axes.backends.AxesBackend',
 ]
+
+# Cache settings
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+        'LOCATION': 'unique-snowflake',
+    }
+}
+
+# Session settings
+SESSION_ENGINE = 'django.contrib.sessions.backends.db'
+SESSION_COOKIE_AGE = 1209600  # 2 semanas en segundos
+
+# Security Settings
+SECURE_BROWSER_XSS_FILTER = True
+SECURE_CONTENT_TYPE_NOSNIFF = True
+X_FRAME_OPTIONS = 'DENY'
+CSRF_COOKIE_SECURE = True
+SESSION_COOKIE_SECURE = True
+SECURE_SSL_REDIRECT = False  # Cambiar a True en producción con SSL
+
+# Configuración de seguridad de contraseñas
+PASSWORD_HASHERS = [
+    'django.contrib.auth.hashers.PBKDF2PasswordHasher',
+    'django.contrib.auth.hashers.PBKDF2SHA1PasswordHasher',
+    'django.contrib.auth.hashers.Argon2PasswordHasher',
+    'django.contrib.auth.hashers.BCryptSHA256PasswordHasher',
+]
+
+# Configuración de sesiones
+SESSION_EXPIRE_AT_BROWSER_CLOSE = True
+SESSION_COOKIE_HTTPONLY = True
+CSRF_COOKIE_HTTPONLY = True

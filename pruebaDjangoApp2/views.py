@@ -9,6 +9,14 @@ from django.http import JsonResponse
 from django.contrib.admin.views.decorators import staff_member_required
 from django.core.files.storage import FileSystemStorage
 from .forms import SuplementosForm, CategoriaForm
+from django.core.cache import cache
+from django.conf import settings
+from django.utils import timezone
+from datetime import timedelta
+from django.core.validators import validate_email
+from django.core.exceptions import ValidationError
+from django.utils.html import strip_tags
+import re
 
 def suplementos(request):
     suplementos = Suplementos.objects.all()
@@ -189,33 +197,66 @@ def realizar_compra(request):
     messages.success(request, '¡Compra realizada con éxito! Gracias por tu compra.')
     return redirect('ver_carrito')
 
+def sanitize_input(input_str):
+    """Sanitiza la entrada del usuario para prevenir SQL injection"""
+    if not input_str:
+        return None
+    # Eliminar caracteres especiales y espacios en blanco
+    sanitized = re.sub(r'[^\w\s@.-]', '', input_str)
+    return sanitized.strip()
+
 def login_view(request):
     if request.method == 'POST':
-        username = request.POST.get('username')
-        password = request.POST.get('password')
-        user = authenticate(request, username=username, password=password)
+        username = sanitize_input(request.POST.get('username'))
+        password = request.POST.get('password')  # No sanitizamos la contraseña para no afectar caracteres especiales
         
-        if user is not None:
-            login(request, user)
-            # Si hay un carrito en la sesión, lo asignamos al usuario
-            carrito_id = request.session.get('carrito_id')
-            if carrito_id:
-                carrito = Carrito.objects.get(id=carrito_id)
-                carrito.usuario = user
-                carrito.save()
-                del request.session['carrito_id']
+        # Validar que los campos no estén vacíos
+        if not username or not password:
+            messages.error(request, 'Por favor ingrese usuario y contraseña')
+            return render(request, 'login.html')
+        
+        # Validar longitud máxima
+        if len(username) > 150 or len(password) > 128:
+            messages.error(request, 'Datos de entrada inválidos')
+            return render(request, 'login.html')
+        
+        try:
+            # Usar el método authenticate de Django que ya tiene protección contra SQL injection
+            user = authenticate(request, username=username, password=password)
             
-            # Redirección según tipo de usuario
-            next_url = request.GET.get('next', '/')
-            if user.is_staff or user.is_superuser:
-                # Si el next es /admin/ o /admin, redirigir a admin-panel
-                if next_url.rstrip('/') == '/admin':
-                    return redirect('admin_panel')
-                if next_url == '/' or next_url == '':
-                    return redirect('admin_panel')
-            return redirect(next_url)
-        else:
-            messages.error(request, 'Usuario o contraseña incorrectos')
+            if user is not None:
+                # Registrar el inicio de sesión exitoso
+                login(request, user)
+                
+                # Si hay un carrito en la sesión, lo asignamos al usuario
+                carrito_id = request.session.get('carrito_id')
+                if carrito_id:
+                    try:
+                        carrito = Carrito.objects.get(id=carrito_id)
+                        carrito.usuario = user
+                        carrito.save()
+                        del request.session['carrito_id']
+                    except Carrito.DoesNotExist:
+                        pass
+                
+                # Redirección según tipo de usuario
+                next_url = request.GET.get('next', '/')
+                # Sanitizar la URL de redirección
+                if next_url:
+                    next_url = strip_tags(next_url)
+                    if not next_url.startswith('/'):
+                        next_url = '/'
+                
+                if user.is_staff or user.is_superuser:
+                    if next_url.rstrip('/') == '/admin':
+                        return redirect('admin_panel')
+                    if next_url == '/' or next_url == '':
+                        return redirect('admin_panel')
+                return redirect(next_url)
+            else:
+                messages.error(request, 'Usuario o contraseña incorrectos')
+        except Exception as e:
+            messages.error(request, 'Error al intentar iniciar sesión. Por favor intente nuevamente.')
     
     return render(request, 'login.html')
 
