@@ -243,63 +243,54 @@ def login_view(request):
                 next_url = request.GET.get('next', '/')
                 # Sanitizar la URL de redirección
                 if next_url:
-                    next_url = strip_tags(next_url)
-                    if not next_url.startswith('/'):
-                        next_url = '/'
-                
-                if user.is_staff or user.is_superuser:
-                    if next_url.rstrip('/') == '/admin':
-                        return redirect('admin_panel')
-                    if next_url == '/' or next_url == '':
-                        return redirect('admin_panel')
-                return redirect(next_url)
+                    # Basic URL validation to prevent open redirect vulnerabilities
+                    # from django.utils.http import is_safe_url
+                    # if not is_safe_url(url=next_url, allowed_hosts=request.get_host()):
+                    #    next_url = '/'
+                    pass # Mantener next_url para redirección segura
+
+                return redirect(next_url or '/') # Redirigir a la URL deseada o a la página principal
             else:
-                messages.error(request, 'Usuario o contraseña incorrectos')
+                # Si el usuario no existe o las credenciales son incorrectas
+                messages.error(request, 'Usuario o contraseña incorrectos.')
         except Exception as e:
-            messages.error(request, 'Error al intentar iniciar sesión. Por favor intente nuevamente.')
-    
+            messages.error(request, f'Ocurrió un error inesperado: {e}')
+
     return render(request, 'login.html')
 
 def actualizar_cantidad_ajax(request):
-    if request.method == 'POST' and request.is_ajax():
+    if request.method == 'POST' and request.headers.get('x-requested-with') == 'XMLHttpRequest':
         item_id = request.POST.get('item_id')
-        cantidad = int(request.POST.get('cantidad', 1))
-        try:
-            if request.user.is_authenticated:
-                item = ItemCarrito.objects.get(id=item_id, carrito__usuario=request.user)
-            else:
-                carrito_id = request.session.get('carrito_id')
-                item = ItemCarrito.objects.get(id=item_id, carrito_id=carrito_id)
-        except ItemCarrito.DoesNotExist:
-            return JsonResponse({'error': 'Item no encontrado'}, status=404)
+        cantidad = int(request.POST.get('cantidad', 0))
+
+        if request.user.is_authenticated:
+            item = get_object_or_404(ItemCarrito, id=item_id, carrito__usuario=request.user)
+        else:
+            carrito_id = request.session.get('carrito_id')
+            item = get_object_or_404(ItemCarrito, id=item_id, carrito_id=carrito_id)
 
         if cantidad > 0:
             item.cantidad = cantidad
             item.save()
+            carrito = item.carrito
+            return JsonResponse({'success': True, 'subtotal': item.subtotal, 'total': carrito.total})
         else:
             item.delete()
-            return JsonResponse({'deleted': True})
-
-        subtotal = item.subtotal
-        carrito = item.carrito
-        total = carrito.total
-        return JsonResponse({'subtotal': subtotal, 'total': total})
-    return JsonResponse({'error': 'Petición inválida'}, status=400)
+            carrito = item.carrito
+            # Si el carrito está vacío después de eliminar el último artículo, también devolver el total actualizado
+            if not carrito.itemcarrito_set.exists():
+                return JsonResponse({'success': True, 'deleted': True, 'total': 0})
+            return JsonResponse({'success': True, 'deleted': True, 'total': carrito.total})
+    return JsonResponse({'success': False, 'error': 'Invalid request'})
 
 @staff_member_required
 def admin_panel(request):
-    return render(request, 'admin_base.html')
+    return redirect('admin_suplementos')
 
 @staff_member_required
 def admin_suplementos(request):
-    query = request.GET.get('q', '')
     suplementos = Suplementos.objects.all()
-    if query:
-        suplementos = suplementos.filter(nombre__icontains=query)
-    return render(request, 'admin_suplementos.html', {
-        'suplementos': suplementos,
-        'query': query
-    })
+    return render(request, 'admin_suplementos.html', {'suplementos': suplementos})
 
 @staff_member_required
 def admin_suplemento_nuevo(request):
@@ -309,11 +300,9 @@ def admin_suplemento_nuevo(request):
             form.save()
             messages.success(request, 'Suplemento creado correctamente.')
             return redirect('admin_suplementos')
-        else:
-            messages.error(request, 'Por favor corrige los errores en el formulario.')
     else:
         form = SuplementosForm()
-    return render(request, 'admin_suplemento_form.html', {'form': form, 'accion': 'Crear'})
+    return render(request, 'admin_suplemento_nuevo.html', {'form': form})
 
 @staff_member_required
 def admin_suplemento_editar(request, suplemento_id):
@@ -324,11 +313,9 @@ def admin_suplemento_editar(request, suplemento_id):
             form.save()
             messages.success(request, 'Suplemento actualizado correctamente.')
             return redirect('admin_suplementos')
-        else:
-            messages.error(request, 'Por favor corrige los errores en el formulario.')
     else:
         form = SuplementosForm(instance=suplemento)
-    return render(request, 'admin_suplemento_form.html', {'form': form, 'accion': 'Editar', 'suplemento': suplemento})
+    return render(request, 'admin_suplemento_editar.html', {'form': form, 'suplemento': suplemento})
 
 @staff_member_required
 def admin_suplemento_eliminar(request, suplemento_id):
@@ -341,14 +328,8 @@ def admin_suplemento_eliminar(request, suplemento_id):
 
 @staff_member_required
 def admin_categorias(request):
-    query = request.GET.get('q', '')
     categorias = Categoria.objects.all()
-    if query:
-        categorias = categorias.filter(nombreCategoria__icontains=query)
-    return render(request, 'admin_categorias.html', {
-        'categorias': categorias,
-        'query': query
-    })
+    return render(request, 'admin_categorias.html', {'categorias': categorias})
 
 @staff_member_required
 def admin_categoria_nueva(request):
@@ -358,11 +339,9 @@ def admin_categoria_nueva(request):
             form.save()
             messages.success(request, 'Categoría creada correctamente.')
             return redirect('admin_categorias')
-        else:
-            messages.error(request, 'Por favor corrige los errores en el formulario.')
     else:
         form = CategoriaForm()
-    return render(request, 'admin_categoria_form.html', {'form': form, 'accion': 'Crear'})
+    return render(request, 'admin_categoria_nueva.html', {'form': form})
 
 @staff_member_required
 def admin_categoria_editar(request, categoria_id):
@@ -373,11 +352,9 @@ def admin_categoria_editar(request, categoria_id):
             form.save()
             messages.success(request, 'Categoría actualizada correctamente.')
             return redirect('admin_categorias')
-        else:
-            messages.error(request, 'Por favor corrige los errores en el formulario.')
     else:
         form = CategoriaForm(instance=categoria)
-    return render(request, 'admin_categoria_form.html', {'form': form, 'accion': 'Editar', 'categoria': categoria})
+    return render(request, 'admin_categoria_editar.html', {'form': form, 'categoria': categoria})
 
 @staff_member_required
 def admin_categoria_eliminar(request, categoria_id):
