@@ -17,6 +17,7 @@ from django.core.validators import validate_email
 from django.core.exceptions import ValidationError
 from django.utils.html import strip_tags
 import re
+import logging
 
 def suplementos(request):
     suplementos = Suplementos.objects.all()
@@ -206,29 +207,38 @@ def sanitize_input(input_str):
     return sanitized.strip()
 
 def login_view(request):
+    logger = logging.getLogger(__name__)
     if request.method == 'POST':
-        username = sanitize_input(request.POST.get('username'))
-        password = request.POST.get('password')  # No sanitizamos la contraseña para no afectar caracteres especiales
-        
+        email = request.POST.get('email')
+        password = request.POST.get('password')
+
         # Validar que los campos no estén vacíos
-        if not username or not password:
-            messages.error(request, 'Por favor ingrese usuario y contraseña')
+        if not email or not password:
+            messages.error(request, 'Por favor ingrese correo y contraseña')
             return render(request, 'login.html')
-        
+
         # Validar longitud máxima
-        if len(username) > 150 or len(password) > 128:
+        if len(email) > 150 or len(password) > 128:
             messages.error(request, 'Datos de entrada inválidos')
             return render(request, 'login.html')
-        
+
         try:
-            # Usar el método authenticate de Django que ya tiene protección contra SQL injection
-            user = authenticate(request, username=username, password=password)
-            
+            from django.contrib.auth.models import User
+            try:
+                user_obj = User.objects.get(email=email)
+            except User.DoesNotExist:
+                messages.error(request, 'Correo o contraseña incorrectos.')
+                return render(request, 'login.html')
+            except Exception as e:
+                logger.error(f'Error buscando usuario por email: {e}')
+                messages.error(request, 'Correo o contraseña incorrectos.')
+                return render(request, 'login.html')
+
+            # Usar el método authenticate de Django con el username real
+            user = authenticate(request, username=user_obj.username, password=password)
+
             if user is not None:
-                # Registrar el inicio de sesión exitoso
                 login(request, user)
-                
-                # Si hay un carrito en la sesión, lo asignamos al usuario
                 carrito_id = request.session.get('carrito_id')
                 if carrito_id:
                     try:
@@ -238,23 +248,13 @@ def login_view(request):
                         del request.session['carrito_id']
                     except Carrito.DoesNotExist:
                         pass
-                
-                # Redirección según tipo de usuario
                 next_url = request.GET.get('next', '/')
-                # Sanitizar la URL de redirección
-                if next_url:
-                    # Basic URL validation to prevent open redirect vulnerabilities
-                    # from django.utils.http import is_safe_url
-                    # if not is_safe_url(url=next_url, allowed_hosts=request.get_host()):
-                    #    next_url = '/'
-                    pass # Mantener next_url para redirección segura
-
-                return redirect(next_url or '/') # Redirigir a la URL deseada o a la página principal
+                return redirect(next_url or '/')
             else:
-                # Si el usuario no existe o las credenciales son incorrectas
-                messages.error(request, 'Usuario o contraseña incorrectos.')
+                messages.error(request, 'Correo o contraseña incorrectos.')
         except Exception as e:
-            messages.error(request, f'Ocurrió un error inesperado: {e}')
+            logger.error(f'Error inesperado en login_view: {e}', exc_info=True)
+            messages.error(request, 'Ocurrió un error inesperado. Por favor, intenta de nuevo.')
 
     return render(request, 'login.html')
 

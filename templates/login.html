@@ -30,14 +30,28 @@
             {% endfor %}
         {% endif %}
 
-        <form class="mt-8 space-y-6" method="POST">
+        <!-- Mensaje de error de validación de contraseña -->
+        <div id="password-error" class="rounded-md bg-red-500 p-4 mb-2 hidden">
+            <div class="flex">
+                <div class="flex-shrink-0">
+                    <i class="bi bi-exclamation-circle text-white"></i>
+                </div>
+                <div class="ml-3">
+                    <p class="text-sm font-medium text-white" id="password-error-msg">
+                        <!-- Mensaje de error aquí -->
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <form id="login-form" class="mt-8 space-y-6" method="POST" autocomplete="off">
             {% csrf_token %}
             <div class="rounded-md shadow-sm -space-y-px">
                 <div>
-                    <label for="username" class="sr-only">Usuario</label>
-                    <input id="username" name="username" type="text" required 
+                    <label for="email" class="sr-only">Correo electrónico</label>
+                    <input id="email" name="email" type="email" required autocomplete="off"
                            class="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-700 bg-gray-800 text-white placeholder-gray-400 rounded-t-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm" 
-                           placeholder="Usuario">
+                           placeholder="Correo electrónico">
                 </div>
                 <div>
                     <label for="password" class="sr-only">Contraseña</label>
@@ -59,4 +73,43 @@
         </form>
     </div>
 </div>
+
+<script>
+// Validación estricta de contraseña en el frontend
+function validarPassword(password) {
+    // Al menos 8 caracteres, una mayúscula, una minúscula, un número y un carácter especial
+    const regex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]).{8,}$/;
+    return regex.test(password);
+}
+
+// Validación para detectar palabras clave típicas de SQL Injection
+function contieneSQLInjection(str) {
+    const patrones = [/select/i, /insert/i, /update/i, /delete/i, /drop/i, /--/, /;/, /'/, /"/, /or\s+1=1/i];
+    return patrones.some(pat => pat.test(str));
+}
+
+document.getElementById('login-form').addEventListener('submit', function(e) {
+    const email = document.getElementById('email').value;
+    const password = document.getElementById('password').value;
+    const errorDiv = document.getElementById('password-error');
+    const errorMsg = document.getElementById('password-error-msg');
+
+    // Validación de SQL Injection
+    if (contieneSQLInjection(email) || contieneSQLInjection(password)) {
+        e.preventDefault();
+        errorMsg.textContent = 'Entrada no permitida: detectado posible intento de inyección SQL.';
+        errorDiv.classList.remove('hidden');
+        return;
+    }
+
+    // Validación de contraseña
+    if (!validarPassword(password)) {
+        e.preventDefault();
+        errorMsg.textContent = 'La contraseña debe tener al menos 8 caracteres, una mayúscula, una minúscula, un número y un carácter especial.';
+        errorDiv.classList.remove('hidden');
+    } else {
+        errorDiv.classList.add('hidden');
+    }
+});
+</script>
 {% endblock %} 
